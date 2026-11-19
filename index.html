@@ -99,7 +99,7 @@ const id=Date.now().toString(36)+Math.random().toString(36).slice(2,6);
 const rec={...ans,id,ts:Date.now()};
 const q=LS.get();q.push(rec);LS.set(q);
 done=true;draw();scrollTo(0,0);sync()}
-const API="GANTI_DENGAN_URL_WEB_APP_APPS_SCRIPT";
+const API="https://script.google.com/macros/s/AKfycbyucdLxUYUw6J5l0flWYG0LteH1cAUxWIEoWYGNhqKa2rU6mp5pX-mpIJflElkETOyUNw/exec";
 function kode(){let k="";try{k=localStorage.getItem("kode")||""}catch(e){}if(!k){k=prompt("Masukkan kode kader:")||"";try{localStorage.setItem("kode",k)}catch(e){}}return k}
 async function sync(){
 for(const r of LS.get()){try{const res=await fetch(API,{method:"POST",body:JSON.stringify({kode:kode(),rec:r})});const j=await res.json();if(j.error){try{localStorage.removeItem("kode")}catch(e){}throw 0}if(!j.ok)throw 0;LS.set(LS.get().filter(x=>x.id!==r.id));online=true}catch(e){online=false;break}}
