@@ -105,17 +105,16 @@ const rec={...ans,id,ts:Date.now()};
 const q=LS.get();q.push(rec);LS.set(q);
 done=true;draw();scrollTo(0,0);sync()}
 const API="GANTI_DENGAN_URL_WEB_APP_APPS_SCRIPT";let err="";
-function kode(){let k="";try{k=localStorage.getItem("kode")||""}catch(e){}if(!k){k=prompt("Masukkan kode kader:")||"";try{localStorage.setItem("kode",k)}catch(e){}}return k}
 async function call(url,opt){
 if(API.startsWith("GANTI")){err="URL Apps Script belum dipasang di index.html";throw 0}
 let res;try{res=await fetch(url,opt)}catch(e){err="Gagal terhubung. Periksa URL dan pastikan akses deployment = Anyone";throw 0}
 let j;try{j=await res.json()}catch(e){err="Respons bukan JSON. Deploy ulang sebagai Web app (Anyone) dan otorisasi script";throw 0}
-if(j.error){try{localStorage.removeItem("kode")}catch(e){}err="Kode kader salah. Ketuk status ini untuk coba lagi";throw 0}
+if(j.error){err="Server menolak permintaan";throw 0}
 err="";return j}
 async function sync(){
-for(const r of LS.get()){try{const j=await call(API,{method:"POST",body:JSON.stringify({kode:kode(),rec:r})});if(!j.ok){err="Script tidak membalas ok";throw 0}LS.set(LS.get().filter(x=>x.id!==r.id));online=true}catch(e){online=false;break}}
+for(const r of LS.get()){try{const j=await call(API,{method:"POST",body:JSON.stringify({rec:r})});if(!j.ok){err="Script tidak membalas ok";throw 0}LS.set(LS.get().filter(x=>x.id!==r.id));online=true}catch(e){online=false;break}}
 stat()}
-async function load(){try{const j=await call(API+"?kode="+encodeURIComponent(kode()));rows=j.rows;online=true;stat();if(tab!=="isi")draw()}catch(e){online=false;stat()}}
+async function load(){try{const j=await call(API);rows=j.rows;online=true;stat();if(tab!=="isi")draw()}catch(e){online=false;stat()}}
 function stat(){const p=LS.get().length;$("st").textContent=(online?"Online":"Offline")+(p?` · ${p} data menunggu sinkron`:online?" · semua data tersinkron":" · data disimpan di perangkat")+(err?" · ⚠ "+err:"")}
 function reset(){const k={tgl:ans.tgl,kader:ans.kader,kel:ans.kel,rtrw:ans.rtrw};ans=k;step=0;done=false;errs=[];msg="";draw();scrollTo(0,0)}
 function bars(title,items,total){return `<h2>${title}</h2>`+(items.map(([l,c])=>`<div class="br"><div><span>${esc(l)}</span><span>${c} (${total?Math.round(c/total*100):0}%)</span></div><span class="t"><i style="width:${total?c/total*100:0}%"></i></span></div>`).join("")||"<p class='h'>Belum ada data.</p>")}
