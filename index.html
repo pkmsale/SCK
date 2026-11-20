@@ -12,7 +12,7 @@ body{margin:0;background:var(--bg);color:var(--tx);font:15px/1.5 system-ui,-appl
 .w{max-width:560px;margin:0 auto;padding:12px 14px 40px}
 .hd{background:var(--pr);color:#fff;border-radius:14px;padding:14px 16px;margin-bottom:12px}
 .hd h1{font-size:18px;margin:0 0 2px}.hd p{margin:0;font-size:12px;opacity:.9}
-.st{display:inline-block;margin-top:8px;font-size:11px;background:rgba(255,255,255,.22);border-radius:6px;padding:2px 8px}
+.st{cursor:pointer;display:inline-block;margin-top:8px;font-size:11px;background:rgba(255,255,255,.22);border-radius:6px;padding:2px 8px}
 .tabs{display:flex;gap:6px;margin-bottom:12px}
 .tabs button{flex:1;padding:9px;border:1px solid var(--bd);background:var(--card);color:var(--mu);border-radius:10px;font:inherit;font-size:13px;cursor:pointer}
 .tabs button.on{background:var(--pr);border-color:var(--pr);color:#fff}
@@ -43,12 +43,12 @@ input:focus,textarea:focus{outline:2px solid var(--pr);outline-offset:0}
 .g{display:grid;grid-template-columns:1fr 1fr;gap:10px}
 .ok{text-align:center;padding:24px 8px}
 </style></head><body><div class="w">
-<div class="hd"><h1>Survei Imunisasi Komunitas</h1><p>Aplikasi kader · isi cepat di lapangan</p><span class="st" id="st">Menghubungkan…</span></div>
+<div class="hd"><h1>Survei Imunisasi Komunitas</h1><p>Aplikasi kader · isi cepat di lapangan</p><span class="st" id="st" onclick="sync();load()">Menghubungkan…</span></div>
 <div class="tabs" id="tabs"></div>
 <div id="app"></div>
 </div>
 <script>
-const NK="Individu tanpa tanggungan anak",TA="Tidak ada hambatan";
+const NK="Individu tanpa tanggungan anak",TA="Tidak ada hambatan",CH=["imun","usiaAnak","terakhir","waktu","kia","alasan"];
 const P=[
 {t:"Data responden",f:[
 {k:"tgl",l:"Tanggal survei",ty:"date",r:1},
@@ -61,6 +61,11 @@ const P=[
 {k:"pend",l:"Pendidikan terakhir",ty:"r",o:["Tidak sekolah","SD","SMP","SMA/SMK","Diploma/S1 ke atas"]}]},
 {t:"Partisipasi & akses imunisasi",f:[
 {k:"imun",l:"Apakah imunisasi dasar anak sudah lengkap?",ty:"r",r:1,o:["Ya, sudah lengkap","Sudah sebagian","Belum sama sekali"],show:a=>a.status!==NK},
+{k:"usiaAnak",l:"Usia anak termuda",ty:"r",r:1,o:["0–11 bulan","12–23 bulan","2–5 tahun","6–12 tahun"],show:a=>a.status!==NK},
+{k:"terakhir",l:"Imunisasi terakhir yang diterima anak",ty:"r",r:1,o:["HB-0/BCG (bayi baru lahir)","Polio","DPT-HB-Hib","Campak-Rubella (MR)","Imunisasi lanjutan/booster","Belum pernah imunisasi","Tidak ingat"],show:a=>a.status!==NK},
+{k:"waktu",l:"Kapan imunisasi terakhir diberikan?",ty:"r",r:1,o:["Kurang dari 1 bulan lalu","1–3 bulan lalu","4–6 bulan lalu","Lebih dari 6 bulan lalu","Tidak ingat"],show:a=>a.status!==NK&&a.terakhir!=="Belum pernah imunisasi"},
+{k:"kia",l:"Bukti imunisasi (buku KIA/KMS)",ty:"r",r:1,o:["Ditunjukkan dan dicek kader","Ada tapi tidak dibawa","Tidak ada/hilang"],show:a=>a.status!==NK},
+{k:"alasan",l:"Alasan imunisasi belum lengkap/terlambat",ty:"c",r:1,h:"Boleh pilih lebih dari satu",o:["Anak sakit","Takut efek samping","Jadwal/lokasi sulit dijangkau","Biaya","Tidak tahu jadwal","Lupa","Vaksin tidak tersedia","Tidak diizinkan keluarga","Lainnya"],show:a=>a.status!==NK&&(a.imun==="Sudah sebagian"||a.imun==="Belum sama sekali"||a.terakhir==="Belum pernah imunisasi")},
 {k:"tempat",l:"Tempat layanan imunisasi",ty:"c",r:1,h:"Boleh pilih lebih dari satu",o:["Posyandu","Puskesmas","Klinik/RS swasta","Bidan/dokter praktik mandiri","Belum pernah mengakses"]},
 {k:"hambat",l:"Hambatan akses imunisasi",ty:"c",r:1,h:"Boleh pilih lebih dari satu",o:["Jarak jauh","Jadwal tidak sesuai","Biaya","Kurang informasi","Khawatir efek samping",TA]}]},
 {t:"Pengetahuan & masukan",f:[
@@ -77,7 +82,7 @@ const $=id=>document.getElementById(id);
 const LS={get(){try{return JSON.parse(localStorage.getItem("pend")||"[]")}catch(e){return[]}},set(v){try{localStorage.setItem("pend",JSON.stringify(v))}catch(e){}}};
 const vis=f=>!f.show||f.show(ans);
 function keep(fn){const y=scrollY;fn();scrollTo(0,y)}
-function pick(k,i){const f=FM[k];keep(()=>{ans[k]=f.o[i];if(k==="status"&&ans.status===NK)delete ans.imun;errs=[];draw()})}
+function pick(k,i){const f=FM[k];keep(()=>{ans[k]=f.o[i];if(k==="status"&&ans.status===NK)CH.forEach(x=>delete ans[x]);errs=[];draw()})}
 function tog(k,i){const f=FM[k],v=f.o[i],a=ans[k]||[];keep(()=>{let r=a.includes(v)?a.filter(x=>x!==v):[...a,v];if(k==="hambat"){r=v===TA&&!a.includes(TA)?[TA]:r.filter(x=>x!==TA||v===TA)}ans[k]=r;errs=[];draw()})}
 function sc(k,v){keep(()=>{ans[k]=v;errs=[];draw()})}
 function fld(f){
@@ -94,27 +99,36 @@ function next(){const m=missing().filter(x=>x.pi===step);if(m.length){errs=m.map
 function back(){step--;msg="";errs=[];draw();scrollTo(0,0)}
 async function submit(){
 const m=missing();if(m.length){step=m[0].pi;errs=m.map(x=>x.k);msg="Masih ada pertanyaan wajib yang kosong.";draw();return}
-if(ans.status===NK)ans.imun="Tidak memiliki anak";
+P.forEach(p=>p.f.forEach(f=>{if(!vis(f))delete ans[f.k]}));if(ans.status===NK)ans.imun="Tidak memiliki anak";
 const id=Date.now().toString(36)+Math.random().toString(36).slice(2,6);
 const rec={...ans,id,ts:Date.now()};
 const q=LS.get();q.push(rec);LS.set(q);
 done=true;draw();scrollTo(0,0);sync()}
-const API="https://script.google.com/macros/s/AKfycbyucdLxUYUw6J5l0flWYG0LteH1cAUxWIEoWYGNhqKa2rU6mp5pX-mpIJflElkETOyUNw/exec";
+const API="GANTI_DENGAN_URL_WEB_APP_APPS_SCRIPT";let err="";
 function kode(){let k="";try{k=localStorage.getItem("kode")||""}catch(e){}if(!k){k=prompt("Masukkan kode kader:")||"";try{localStorage.setItem("kode",k)}catch(e){}}return k}
+async function call(url,opt){
+if(API.startsWith("GANTI")){err="URL Apps Script belum dipasang di index.html";throw 0}
+let res;try{res=await fetch(url,opt)}catch(e){err="Gagal terhubung. Periksa URL dan pastikan akses deployment = Anyone";throw 0}
+let j;try{j=await res.json()}catch(e){err="Respons bukan JSON. Deploy ulang sebagai Web app (Anyone) dan otorisasi script";throw 0}
+if(j.error){try{localStorage.removeItem("kode")}catch(e){}err="Kode kader salah. Ketuk status ini untuk coba lagi";throw 0}
+err="";return j}
 async function sync(){
-for(const r of LS.get()){try{const res=await fetch(API,{method:"POST",body:JSON.stringify({kode:kode(),rec:r})});const j=await res.json();if(j.error){try{localStorage.removeItem("kode")}catch(e){}throw 0}if(!j.ok)throw 0;LS.set(LS.get().filter(x=>x.id!==r.id));online=true}catch(e){online=false;break}}
+for(const r of LS.get()){try{const j=await call(API,{method:"POST",body:JSON.stringify({kode:kode(),rec:r})});if(!j.ok){err="Script tidak membalas ok";throw 0}LS.set(LS.get().filter(x=>x.id!==r.id));online=true}catch(e){online=false;break}}
 stat()}
-async function load(){try{const r=await fetch(API+"?kode="+encodeURIComponent(kode()));const j=await r.json();if(j.error){try{localStorage.removeItem("kode")}catch(e){}throw 0}rows=j.rows;online=true;stat();if(tab!=="isi")draw()}catch(e){online=false;stat()}}
-function stat(){const p=LS.get().length;$("st").textContent=(online?"Online":"Offline")+(p?` · ${p} data menunggu sinkron`:online?" · semua data tersinkron":" · data disimpan di perangkat")}
+async function load(){try{const j=await call(API+"?kode="+encodeURIComponent(kode()));rows=j.rows;online=true;stat();if(tab!=="isi")draw()}catch(e){online=false;stat()}}
+function stat(){const p=LS.get().length;$("st").textContent=(online?"Online":"Offline")+(p?` · ${p} data menunggu sinkron`:online?" · semua data tersinkron":" · data disimpan di perangkat")+(err?" · ⚠ "+err:"")}
 function reset(){const k={tgl:ans.tgl,kader:ans.kader,kel:ans.kel,rtrw:ans.rtrw};ans=k;step=0;done=false;errs=[];msg="";draw();scrollTo(0,0)}
 function bars(title,items,total){return `<h2>${title}</h2>`+(items.map(([l,c])=>`<div class="br"><div><span>${esc(l)}</span><span>${c} (${total?Math.round(c/total*100):0}%)</span></div><span class="t"><i style="width:${total?c/total*100:0}%"></i></span></div>`).join("")||"<p class='h'>Belum ada data.</p>")}
 function cnt(k,opts,multi){return opts.map(o=>[o,rows.filter(r=>multi?(r[k]||[]).includes(o):r[k]===o).length])}
 function avg(k){const v=rows.map(r=>r[k]).filter(x=>typeof x==="number");return v.length?(v.reduce((a,b)=>a+b,0)/v.length).toFixed(1):"–"}
 function rekap(){
 const t=rows.length,kids=rows.filter(r=>r.imun&&r.imun!=="Tidak memiliki anak").length;
-const kel={};rows.forEach(r=>{const k=(r.kel||"?").trim();kel[k]=(kel[k]||0)+1});
+const na=rows.filter(r=>(r.alasan||[]).length).length;const kel={};rows.forEach(r=>{const k=(r.kel||"?").trim();kel[k]=(kel[k]||0)+1});
 return `<div class="card"><div class="g"><div><div class="big">${t}</div><div class="h">Total responden</div></div><div><div class="big">${t?Math.round(rows.filter(r=>r.imun==="Ya, sudah lengkap").length/Math.max(kids,1)*100):0}%</div><div class="h">Imunisasi lengkap (dari ${kids} keluarga beranak)</div></div><div><div class="big">${avg("paham")}</div><div class="h">Rata-rata pemahaman (1–5)</div></div><div><div class="big">${avg("puas")}</div><div class="h">Rata-rata kepuasan (1–5)</div></div></div></div>
 <div class="card">${bars("Status imunisasi",cnt("imun",["Ya, sudah lengkap","Sudah sebagian","Belum sama sekali","Tidak memiliki anak"]),t)}</div>
+<div class="card">${bars("Imunisasi terakhir yang diterima anak",cnt("terakhir",FM.terakhir.o),kids)}</div>
+<div class="card">${bars("Waktu imunisasi terakhir",cnt("waktu",FM.waktu.o),kids)}</div>
+<div class="card">${bars("Alasan belum lengkap/terlambat",cnt("alasan",FM.alasan.o,1),na)}</div>
 <div class="card">${bars("Hambatan akses",cnt("hambat",FM.hambat.o,1),t)}</div>
 <div class="card">${bars("Informasi meragukan vaksin",cnt("info",FM.info.o),t)}</div>
 <div class="card">${bars("Responden per wilayah",Object.entries(kel).sort((a,b)=>b[1]-a[1]).slice(0,8),t)}</div>`}
@@ -130,7 +144,7 @@ $("tabs").innerHTML=[["isi","Isi survei"],["rekap","Rekap"],["data","Data"]].map
 const a=$("app");
 if(tab==="rekap"){a.innerHTML=rekap();return}
 if(tab==="data"){a.innerHTML=data();return}
-if(done){a.innerHTML=`<div class="card ok"><div class="big">✓</div><h2>Terima kasih!</h2><p class="h">Data tersimpan${online?" dan dikirim ke server":" di perangkat; akan terkirim saat online"}.</p><button class="btn p" style="width:100%" onclick="reset()">Isi survei baru</button></div>`;return}
+if(done){a.innerHTML=`<div class="card ok"><div class="big">✓</div><h2>Terima kasih!</h2><p class="h">Data tersimpan di perangkat. Cek status sinkron di bagian atas halaman.</p><button class="btn p" style="width:100%" onclick="reset()">Isi survei baru</button></div>`;return}
 const p=P[step],last=step===P.length-1;
 a.innerHTML=`<div class="card"><div class="pg"><span>Halaman ${step+1} dari ${P.length}</span><span>${Math.round((step+1)/P.length*100)}%</span></div><div class="bar"><i style="width:${(step+1)/P.length*100}%"></i></div><h2>${p.t}</h2>${p.f.filter(vis).map(fld).join("")}${msg?`<p class="msg">${msg}</p>`:""}<div class="nav">${step?`<button class="back" onclick="back()">← Kembali</button>`:""}<button class="nx" onclick="${last?"submit()":"next()"}">${last?"Simpan ✓":"Lanjut →"}</button></div></div>`}
 draw();stat();load();sync();
