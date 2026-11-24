@@ -126,7 +126,7 @@ const id=Date.now().toString(36)+Math.random().toString(36).slice(2,6);
 const rec={...ans,id,ts:Date.now()};
 const q=LS.get();q.push(rec);LS.set(q);
 done=true;draw();scrollTo(0,0);sync()}
-const API="GANTI_DENGAN_URL_WEB_APP_APPS_SCRIPT";let err="";
+const API="https://script.google.com/macros/s/AKfycbzJ-RpCIwon1BQRZarCx165B5zSOs3G3FoVDu_tckPNmHjXqzerFbB2bb_Q1zNWKlqGIA/exec";let err="";
 async function call(url,opt){
 if(API.startsWith("GANTI")){err="URL Apps Script belum dipasang di index.html";throw 0}
 let res;try{res=await fetch(url,opt)}catch(e){err="Gagal terhubung. Periksa URL dan pastikan akses deployment = Anyone";throw 0}
