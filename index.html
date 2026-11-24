@@ -42,13 +42,25 @@ input:focus,textarea:focus{outline:2px solid var(--pr);outline-offset:0}
 .row{padding:10px 0;border-bottom:1px solid var(--bd);font-size:13px}.row:last-child{border:0}.row small{color:var(--mu)}
 .g{display:grid;grid-template-columns:1fr 1fr;gap:10px}
 .ok{text-align:center;padding:24px 8px}
+.auto{padding:10px 12px;border-radius:10px;background:var(--soft);border:1px solid var(--pr);font-size:14px}
 </style></head><body><div class="w">
 <div class="hd"><h1>Survei Imunisasi Komunitas</h1><p>Aplikasi kader · isi cepat di lapangan</p><span class="st" id="st" onclick="sync();load()">Menghubungkan…</span></div>
 <div class="tabs" id="tabs"></div>
 <div id="app"></div>
 </div>
 <script>
-const NK="Individu tanpa tanggungan anak",TA="Tidak ada hambatan",CH=["imun","usiaAnak","terakhir","waktu","kia","alasan"];
+const NK="Individu tanpa tanggungan anak",TA="Tidak ada hambatan",CH=["imun","usiaAnak","kia","hb0","bcg","opv","dpt","ipv","mr","terakhir","waktu","alasan","alasanLain"];
+const KID=a=>a.status!==NK;
+const dz=v=>v===undefined?null:(v==="Sudah"?1:(v==="Belum"||v==="Tidak tahu")?0:parseInt(v,10));
+function st(a){
+const v=["hb0","bcg","opv","dpt","ipv","mr"].map(k=>dz(a[k])),m=parseInt(a.usiaAnak,10);
+if(v.includes(null)||isNaN(m))return null;
+if(v.every(x=>x===0))return "Belum pernah imunisasi";
+const g=m-1,need=[1,g>=1?1:0,[1,2,3,4].filter(x=>g>=x).length,[2,3,4].filter(x=>g>=x).length,g>=4?1:0,g>=9?1:0];
+return v.every((x,i)=>x>=need[i])?"Lengkap sesuai usia":"Belum lengkap"}
+function autoHtml(){const r=st(ans);return r?`<b>${r}</b>`:"Isi usia dan checklist di atas untuk melihat status"}
+function upd(){const e=document.getElementById("autobox");if(e)e.innerHTML=autoHtml()}
+const AL=a=>KID(a)&&["Belum lengkap","Belum pernah imunisasi"].includes(st(a));
 const P=[
 {t:"Data responden",f:[
 {k:"tgl",l:"Tanggal survei",ty:"date",r:1},
@@ -60,19 +72,26 @@ const P=[
 {k:"jk",l:"Jenis kelamin",ty:"r",r:1,o:["Laki-laki","Perempuan"]},
 {k:"pend",l:"Pendidikan terakhir",ty:"r",o:["Tidak sekolah","SD","SMP","SMA/SMK","Diploma/S1 ke atas"]}]},
 {t:"Partisipasi & akses imunisasi",f:[
-{k:"imun",l:"Apakah imunisasi dasar anak sudah lengkap?",ty:"r",r:1,o:["Ya, sudah lengkap","Sudah sebagian","Belum sama sekali"],show:a=>a.status!==NK},
-{k:"usiaAnak",l:"Usia anak termuda",ty:"r",r:1,o:["0–11 bulan","12–23 bulan","2–5 tahun","6–12 tahun"],show:a=>a.status!==NK},
-{k:"terakhir",l:"Imunisasi terakhir yang diterima anak",ty:"r",r:1,o:["HB-0/BCG (bayi baru lahir)","Polio","DPT-HB-Hib","Campak-Rubella (MR)","Imunisasi lanjutan/booster","Belum pernah imunisasi","Tidak ingat"],show:a=>a.status!==NK},
-{k:"waktu",l:"Kapan imunisasi terakhir diberikan?",ty:"r",r:1,o:["Kurang dari 1 bulan lalu","1–3 bulan lalu","4–6 bulan lalu","Lebih dari 6 bulan lalu","Tidak ingat"],show:a=>a.status!==NK&&a.terakhir!=="Belum pernah imunisasi"},
-{k:"kia",l:"Bukti imunisasi (buku KIA/KMS)",ty:"r",r:1,o:["Ditunjukkan dan dicek kader","Ada tapi tidak dibawa","Tidak ada/hilang"],show:a=>a.status!==NK},
-{k:"alasan",l:"Alasan imunisasi belum lengkap/terlambat",ty:"c",r:1,h:"Boleh pilih lebih dari satu",o:["Anak sakit","Takut efek samping","Jadwal/lokasi sulit dijangkau","Biaya","Tidak tahu jadwal","Lupa","Vaksin tidak tersedia","Tidak diizinkan keluarga","Lainnya"],show:a=>a.status!==NK&&(a.imun==="Sudah sebagian"||a.imun==="Belum sama sekali"||a.terakhir==="Belum pernah imunisasi")},
+{k:"usiaAnak",l:"Usia anak termuda (dalam bulan)",ty:"n",r:1,h:"Contoh: 1 tahun 3 bulan = 15",show:KID},
+{k:"kia",l:"Sumber data imunisasi",ty:"r",r:1,h:"Utamakan buku KIA/KMS. Isi checklist berikut dari buku tersebut.",o:["Buku KIA/KMS ditunjukkan dan dicek kader","Buku ada tetapi tidak dibawa (berdasarkan ingatan)","Tidak ada buku (berdasarkan ingatan)"],show:KID},
+{k:"hb0",l:"HB-0 (hepatitis B, kurang dari 24 jam setelah lahir)",ty:"r",r:1,o:["Sudah","Belum","Tidak tahu"],show:KID},
+{k:"bcg",l:"BCG",ty:"r",r:1,o:["Sudah","Belum","Tidak tahu"],show:KID},
+{k:"opv",l:"Polio tetes (OPV): jumlah dosis yang sudah diterima",ty:"r",r:1,o:["0","1","2","3","4"],show:KID},
+{k:"dpt",l:"DPT-HB-Hib: jumlah dosis yang sudah diterima",ty:"r",r:1,o:["0","1","2","3"],show:KID},
+{k:"ipv",l:"Polio suntik (IPV)",ty:"r",r:1,o:["Sudah","Belum","Tidak tahu"],show:KID},
+{k:"mr",l:"Campak-Rubella (MR)",ty:"r",r:1,o:["Sudah","Belum","Tidak tahu"],show:KID},
+{k:"imun",l:"Status kelengkapan imunisasi dasar (dihitung otomatis)",ty:"auto",show:KID},
+{k:"terakhir",l:"Imunisasi terakhir yang diterima anak",ty:"r",r:1,o:["HB-0/BCG (bayi baru lahir)","Polio","DPT-HB-Hib","Campak-Rubella (MR)","Imunisasi lanjutan/booster","Tidak ingat"],show:a=>KID(a)&&st(a)!=="Belum pernah imunisasi"},
+{k:"waktu",l:"Kapan imunisasi terakhir diberikan?",ty:"r",r:1,o:["Kurang dari 1 bulan lalu","1–3 bulan lalu","4–6 bulan lalu","Lebih dari 6 bulan lalu","Tidak ingat"],show:a=>KID(a)&&st(a)!=="Belum pernah imunisasi"},
+{k:"alasan",l:"Alasan imunisasi belum lengkap/terlambat",ty:"c",r:1,h:"Boleh pilih lebih dari satu",o:["Anak sakit","Takut efek samping","Jadwal/lokasi sulit dijangkau","Biaya","Tidak tahu jadwal","Lupa","Vaksin tidak tersedia","Tidak diizinkan keluarga","Lainnya"],show:AL},
+{k:"alasanLain",l:"Sebutkan alasan lainnya",ty:"text",r:1,ph:"Ketik alasan",show:a=>AL(a)&&(a.alasan||[]).includes("Lainnya")},
 {k:"tempat",l:"Tempat layanan imunisasi",ty:"c",r:1,h:"Boleh pilih lebih dari satu",o:["Posyandu","Puskesmas","Klinik/RS swasta","Bidan/dokter praktik mandiri","Belum pernah mengakses"]},
 {k:"hambat",l:"Hambatan akses imunisasi",ty:"c",r:1,h:"Boleh pilih lebih dari satu",o:["Jarak jauh","Jadwal tidak sesuai","Biaya","Kurang informasi","Khawatir efek samping",TA]}]},
 {t:"Pengetahuan & masukan",f:[
-{k:"paham",l:"Seberapa paham manfaat imunisasi?",ty:"s",r:1,lo:"Tidak paham",hi:"Sangat paham"},
+{k:"paham",l:"Seberapa jauh Anda memahami imunisasi? (pilih yang paling sesuai)",ty:"sa",r:1,an:["Tidak tahu sama sekali manfaat imunisasi","Tahu imunisasi itu ada, tetapi tidak tahu manfaat atau penyakit yang dicegah","Tahu manfaat umum (mencegah penyakit), tetapi tidak tahu jenis dan jadwalnya","Tahu manfaat dan sebagian jenis/jadwal imunisasi dasar","Tahu manfaat, jenis, dan jadwal imunisasi dasar lengkap, dan bisa menjelaskannya"]},
 {k:"sumber",l:"Sumber informasi imunisasi",ty:"c",h:"Boleh pilih lebih dari satu",o:["Tenaga kesehatan","Kader Posyandu","Keluarga/kerabat","Media sosial","Website resmi pemerintah"]},
 {k:"info",l:"Pernah mendengar informasi yang meragukan keamanan vaksin?",ty:"r",r:1,o:["Ya, dan sempat ragu","Ya, tapi tetap percaya vaksin","Tidak pernah"]},
-{k:"puas",l:"Kepuasan terhadap layanan imunisasi",ty:"s",r:1,lo:"Tidak puas",hi:"Sangat puas"},
+{k:"puas",l:"Pengalaman Anda dengan layanan imunisasi (pilih yang paling sesuai)",ty:"sa",r:1,show:a=>!((a.tempat||[]).length===1&&a.tempat[0]==="Belum pernah mengakses"),an:["Sangat tidak puas: layanan sering tidak didapat (vaksin habis, tutup, ditolak)","Tidak puas: layanan ada, tetapi jarak, jadwal, atau antrean sangat menyulitkan","Cukup: layanan memadai, tetapi ada beberapa kendala","Puas: layanan mudah diakses dan petugas memberi informasi","Sangat puas: mudah diakses, petugas ramah dan menjelaskan, tanpa kendala"]},
 {k:"saran",l:"Saran untuk program imunisasi komunitas",ty:"ta"}]}];
 const FM={};let n=0;P.forEach(p=>p.f.forEach(f=>{f.n=++n;FM[f.k]=f}));
 const today=()=>new Date().toISOString().slice(0,10);
@@ -89,9 +108,12 @@ function fld(f){
 const e=errs.includes(f.k)?" err":"";
 let h=`<div class="q${e}"><div class="l">${f.n}. ${f.l}${f.r?"<b>*</b>":""}</div>${f.h?`<div class="h">${f.h}</div>`:""}`;
 if(f.ty==="text"||f.ty==="date")h+=`<input type="${f.ty}" value="${esc(ans[f.k])}" placeholder="${esc(f.ph||"")}" oninput="ans['${f.k}']=this.value">`;
+else if(f.ty==="n")h+=`<input type="number" inputmode="numeric" min="0" max="215" value="${esc(ans[f.k])}" oninput="ans['${f.k}']=this.value;upd()">`;
+else if(f.ty==="auto")h+=`<div class="auto" id="autobox">${autoHtml()}</div><div class="h" style="margin-top:6px">Lengkap = semua dosis yang seharusnya sudah diterima sesuai usia (toleransi 1 bulan): HB-0 1×, BCG 1×, Polio tetes 4×, DPT-HB-Hib 3×, Polio suntik 1×, Campak-Rubella 1×. "Tidak tahu" dihitung belum diterima. Booster dan imunisasi sekolah tidak dihitung.</div>`;
 else if(f.ty==="ta")h+=`<textarea rows="3" oninput="ans['${f.k}']=this.value">${esc(ans[f.k])}</textarea>`;
 else if(f.ty==="r")h+=f.o.map((o,i)=>`<button type="button" class="op${ans[f.k]===o?" on":""}" onclick="pick('${f.k}',${i})">${esc(o)}</button>`).join("");
 else if(f.ty==="c")h+=f.o.map((o,i)=>`<button type="button" class="op c${(ans[f.k]||[]).includes(o)?" on":""}" onclick="tog('${f.k}',${i})">${esc(o)}</button>`).join("");
+else if(f.ty==="sa")h+=f.an.map((d,i)=>`<button type="button" class="op${ans[f.k]===i+1?" on":""}" onclick="sc('${f.k}',${i+1})"><b>${i+1}</b>&nbsp;${esc(d)}</button>`).join("");
 else if(f.ty==="s")h+=`<div class="sc">${[1,2,3,4,5].map(v=>`<button type="button" class="${ans[f.k]===v?"on":""}" onclick="sc('${f.k}',${v})">${v}</button>`).join("")}</div><div class="sl"><span>1 = ${f.lo}</span><span>5 = ${f.hi}</span></div>`;
 return h+"</div>"}
 function missing(){const m=[];P.forEach((p,pi)=>p.f.forEach(f=>{if(!f.r||!vis(f))return;const v=ans[f.k];if(v==null||v===""||(Array.isArray(v)&&!v.length))m.push({k:f.k,pi})}));return m}
@@ -99,12 +121,12 @@ function next(){const m=missing().filter(x=>x.pi===step);if(m.length){errs=m.map
 function back(){step--;msg="";errs=[];draw();scrollTo(0,0)}
 async function submit(){
 const m=missing();if(m.length){step=m[0].pi;errs=m.map(x=>x.k);msg="Masih ada pertanyaan wajib yang kosong.";draw();return}
-P.forEach(p=>p.f.forEach(f=>{if(!vis(f))delete ans[f.k]}));if(ans.status===NK)ans.imun="Tidak memiliki anak";
+P.forEach(p=>p.f.forEach(f=>{if(!vis(f))delete ans[f.k]}));ans.imun=ans.status===NK?"Tidak memiliki anak":st(ans);
 const id=Date.now().toString(36)+Math.random().toString(36).slice(2,6);
 const rec={...ans,id,ts:Date.now()};
 const q=LS.get();q.push(rec);LS.set(q);
 done=true;draw();scrollTo(0,0);sync()}
-const API="https://script.google.com/macros/s/AKfycbzJ-RpCIwon1BQRZarCx165B5zSOs3G3FoVDu_tckPNmHjXqzerFbB2bb_Q1zNWKlqGIA/exec";let err="";
+const API="GANTI_DENGAN_URL_WEB_APP_APPS_SCRIPT";let err="";
 async function call(url,opt){
 if(API.startsWith("GANTI")){err="URL Apps Script belum dipasang di index.html";throw 0}
 let res;try{res=await fetch(url,opt)}catch(e){err="Gagal terhubung. Periksa URL dan pastikan akses deployment = Anyone";throw 0}
@@ -123,11 +145,12 @@ function avg(k){const v=rows.map(r=>r[k]).filter(x=>typeof x==="number");return 
 function rekap(){
 const t=rows.length,kids=rows.filter(r=>r.imun&&r.imun!=="Tidak memiliki anak").length;
 const na=rows.filter(r=>(r.alasan||[]).length).length;const kel={};rows.forEach(r=>{const k=(r.kel||"?").trim();kel[k]=(kel[k]||0)+1});
-return `<div class="card"><div class="g"><div><div class="big">${t}</div><div class="h">Total responden</div></div><div><div class="big">${t?Math.round(rows.filter(r=>r.imun==="Ya, sudah lengkap").length/Math.max(kids,1)*100):0}%</div><div class="h">Imunisasi lengkap (dari ${kids} keluarga beranak)</div></div><div><div class="big">${avg("paham")}</div><div class="h">Rata-rata pemahaman (1–5)</div></div><div><div class="big">${avg("puas")}</div><div class="h">Rata-rata kepuasan (1–5)</div></div></div></div>
-<div class="card">${bars("Status imunisasi",cnt("imun",["Ya, sudah lengkap","Sudah sebagian","Belum sama sekali","Tidak memiliki anak"]),t)}</div>
+return `<div class="card"><div class="g"><div><div class="big">${t}</div><div class="h">Total responden</div></div><div><div class="big">${t?Math.round(rows.filter(r=>r.imun==="Lengkap sesuai usia").length/Math.max(kids,1)*100):0}%</div><div class="h">Imunisasi lengkap (dari ${kids} keluarga beranak)</div></div><div><div class="big">${avg("paham")}</div><div class="h">Rata-rata pemahaman (1–5)</div></div><div><div class="big">${avg("puas")}</div><div class="h">Rata-rata kepuasan (1–5, yang pernah mengakses layanan)</div></div></div></div>
+<div class="card">${bars("Status imunisasi",cnt("imun",["Lengkap sesuai usia","Belum lengkap","Belum pernah imunisasi","Tidak memiliki anak"]),t)}</div>
+<div class="card">${bars("Dosis lengkap per jenis (anak beranak, semua usia)",[["HB-0","hb0","Sudah"],["BCG","bcg","Sudah"],["Polio tetes 4 dosis","opv","4"],["DPT-HB-Hib 3 dosis","dpt","3"],["Polio suntik (IPV)","ipv","Sudah"],["Campak-Rubella","mr","Sudah"]].map(([l,k,v])=>[l,rows.filter(r=>r[k]===v).length]),kids)}</div>
 <div class="card">${bars("Imunisasi terakhir yang diterima anak",cnt("terakhir",FM.terakhir.o),kids)}</div>
 <div class="card">${bars("Waktu imunisasi terakhir",cnt("waktu",FM.waktu.o),kids)}</div>
-<div class="card">${bars("Alasan belum lengkap/terlambat",cnt("alasan",FM.alasan.o,1),na)}</div>
+<div class="card">${bars("Alasan belum lengkap/terlambat",cnt("alasan",FM.alasan.o,1),na)}${rows.filter(r=>r.alasanLain).slice(0,10).map(r=>`<div class="row"><small>Lainnya:</small> ${esc(r.alasanLain)}</div>`).join("")}</div>
 <div class="card">${bars("Hambatan akses",cnt("hambat",FM.hambat.o,1),t)}</div>
 <div class="card">${bars("Informasi meragukan vaksin",cnt("info",FM.info.o),t)}</div>
 <div class="card">${bars("Responden per wilayah",Object.entries(kel).sort((a,b)=>b[1]-a[1]).slice(0,8),t)}</div>`}
